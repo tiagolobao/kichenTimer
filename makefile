@@ -16,12 +16,12 @@
 
 # ---------------------------------------
 # Microcontroller specific
-MCU=atmega328p
-F_CPU=16000000UL
+MCU = atmega328p
+F_CPU = 16000000UL
 
 # ---------------------------------------
 # Directiory for the freeRTOS
-FREERTOS_DIR=./miniAVRfreeRTOS
+FREERTOS_DIR = ./miniAVRfreeRTOS
 
 # ---------------------------------------
 # Flashing options
@@ -32,67 +32,83 @@ AVRDUDE_BAUDRATE = 115200
 
 # ---------------------------------------
 # Target file name options
-OUTPUT_FOLDER=out
-TARGET=main
+OUTPUT_FOLDER = out
+TARGET = main
 
 # ---------------------------------------
 # compiler / programmer options
-CC=avr-gcc
+CC = avr-gcc
 AVRDUDE = avrdude
 
 # ---------------------------------------
 # Sources/includes to be used
-FREERTOS_SRC  :=  \
-	$(FREERTOS_DIR)/list.c \
-	$(FREERTOS_DIR)/timers.c \
-	$(FREERTOS_DIR)/stream_buffer.c \
-	$(FREERTOS_DIR)/heap_3.c \
-	$(FREERTOS_DIR)/event_groups.c \
-	$(FREERTOS_DIR)/hooks.c \
-	$(FREERTOS_DIR)/port.c \
-	$(FREERTOS_DIR)/queue.c \
+FREERTOS_SRC :=						\
+	$(FREERTOS_DIR)/list.c			\
+	$(FREERTOS_DIR)/timers.c		\
+	$(FREERTOS_DIR)/stream_buffer.c	\
+	$(FREERTOS_DIR)/heap_3.c		\
+	$(FREERTOS_DIR)/event_groups.c	\
+	$(FREERTOS_DIR)/hooks.c			\
+	$(FREERTOS_DIR)/port.c			\
+	$(FREERTOS_DIR)/queue.c			\
 	$(FREERTOS_DIR)/tasks.c
 
+APPLICATION_SRC := ./src/main.c
 
 SOURCES :=	$(FREERTOS_SRC) \
-	src/main.c
+			$(APPLICATION_SRC)
 
-INC_PATH=-I$(FREERTOS_DIR) -I./
-
-
-# ---------------------------------------
-# ---------- MAKEFILE CODE --------------
-# ---------------------------------------
-
-AVRDUDE_WRITE_FLASH = -U flash:w:./$(OUTPUT_FOLDER)/$(TARGET).hex
-AVRDUDE_FLAGS = -p $(MCU) -b $(AVRDUDE_BAUDRATE)
-AVRDUDE_FLAGS += -P $(AVRDUDE_PORT)
-AVRDUDE_FLAGS += -c $(AVRDUDE_PROGRAMMER)
-
-MCUFLAGS = -mmcu=$(MCU) -DF_CPU=$(F_CPU)
-
-CFLAGS = $(MCUFLAGS)  $(INC_PATH) -c $(SOURCES)
-LFLAGS = $(MCUFLAGS) -o ./$(OUTPUT_FOLDER)/$(TARGET).elf ./$(OUTPUT_FOLDER)/*.o
+INC_PATH := -I$(FREERTOS_DIR) -I./
+ 
+OBJECT_FILES := $(SOURCES:%.c=%.o)
 
 # ---------------------------------------
-# Optimization choice
-# This will avoid not used code and guarantee proper delays
-CFLAGS += -ffunction-sections -O2
-LFLAGS += -Wl,--gc-sections
+# GCC and AVRDUDE arguments
+AVRDUDE_WRITE_FLASH := -U flash:w:./$(OUTPUT_FOLDER)/$(TARGET).hex
 
-all: clean $(TARGET)
+AVRDUDE_FLAGS :=	-p $(MCU) -b $(AVRDUDE_BAUDRATE)	\
+					-P $(AVRDUDE_PORT)					\
+					-c $(AVRDUDE_PROGRAMMER)
 
-$(TARGET):
+MCUFLAGS := -mmcu=$(MCU) -DF_CPU=$(F_CPU)
+
+CFLAGS := $(MCUFLAGS) $(INC_PATH) -ffunction-sections -O2
+LFLAGS := $(MCUFLAGS) -Wl,--gc-sections
+
+# ---------------------------------------
+# ---------- TARGETS --------------------
+# ---------------------------------------
+.PHONY: all .program .clean
+
+all: .clean $(TARGET)
+
+.init:
+	@echo Starting build...
+	@echo $(SOURCES)
+	@echo $(OBJECT_FILES)
 	@mkdir $(OUTPUT_FOLDER)
-	$(CC) $(CFLAGS)
-	@mv *.o $(OUTPUT_FOLDER)
-	$(CC) $(LFLAGS)
-	avr-objcopy -O ihex ./$(OUTPUT_FOLDER)/$(TARGET).elf ./$(OUTPUT_FOLDER)/$(TARGET).hex
 
-program:
-	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
 
-clean:
+$(OBJECT_FILES): %.o: %.c
+	@echo building $@...
+	$(CC) $(CFLAGS) -c -o $@ $<
+	mv $@ $(OUTPUT_FOLDER)/
+
+
+TARGET_PATH := ./$(OUTPUT_FOLDER)/$(TARGET)
+
+$(TARGET): .init $(OBJECT_FILES)
+	@echo Linking...
+	$(CC) $(LFLAGS) ./$(OUTPUT_FOLDER)/*.o -o $(TARGET_PATH).elf
+	avr-objcopy -O ihex $(TARGET_PATH).elf $(TARGET_PATH).hex
+	avr-objcopy -O ihex $(TARGET_PATH).hex -R .eeprom $(TARGET_PATH)_eeprom.hex
+	avr-objcopy -I ihex $(TARGET_PATH).hex -O binary $(TARGET_PATH).bin
+	avr-nm -n ./$(OUTPUT_FOLDER)/*.o > $(TARGET_PATH).sym
+	avr-size --format=berkeley $(TARGET_PATH).hex
+
+.program:
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH)
+
+.clean:
 	@echo "Cleaning output"
-	rm -rf ./$(OUTPUT_FOLDER)/
-	rm -f *.o
+	rm -rf ./$(OUTPUT_FOLDER)

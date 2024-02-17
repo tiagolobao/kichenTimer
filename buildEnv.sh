@@ -9,7 +9,7 @@ sudo usermod -aG docker $USER
 
 # ---- daemon commands ----
 sudo systemctl restart docker
-systemctl status docker
+# systemctl status docker
 
 # ---- build docker image ----
 docker build --rm -t tiago_lobao/kichentimer:latest .
@@ -19,7 +19,14 @@ docker images | grep tiago_lobao/kichentimer
 # docker run --rm --privileged -v $(pwd):/build petc avr-gcc --version
 
 # ----- creating alias command -----
-alias ktenv='docker run --rm --privileged -v $(pwd):/build tiago_lobao/kichentimer:latest'
+if cat ~/.bashrc | grep ktenv
+then
+    echo "Alias already created"
+else
+    echo "Creating alias..."
+    echo alias ktenv='docker run --rm --privileged -v $(pwd):/build tiago_lobao/kichentimer:latest' >> ~/.bashrc
+fi
 
+echo "Done!"
 # ----- search arduino serial port -----
 # ls /dev/tty
