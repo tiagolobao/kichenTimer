@@ -53,12 +53,14 @@ FREERTOS_SRC :=						\
 	$(FREERTOS_DIR)/queue.c			\
 	$(FREERTOS_DIR)/tasks.c
 
-APPLICATION_SRC := ./src/main.c
+APPLICATION_SRC :=	./src/main.c \
+					./src/drivers/uart.c \
+					./src/tasks/debuglog.c
 
 SOURCES :=	$(FREERTOS_SRC) \
 			$(APPLICATION_SRC)
 
-INC_PATH := -I$(FREERTOS_DIR) -I./
+INC_PATH := -I$(FREERTOS_DIR) -I./src -I./src/drivers -I./src/tasks
  
 OBJECT_FILES := $(SOURCES:%.c=%.o)
 
@@ -99,11 +101,11 @@ TARGET_PATH := ./$(OUTPUT_FOLDER)/$(TARGET)
 
 $(TARGET): .init $(OBJECT_FILES)
 	@echo Linking...
+	avr-nm -n ./$(OUTPUT_FOLDER)/*.o > $(TARGET_PATH).sym
 	$(CC) $(LFLAGS) ./$(OUTPUT_FOLDER)/*.o -o $(TARGET_PATH).elf
 	avr-objcopy -O ihex $(TARGET_PATH).elf $(TARGET_PATH).hex
 	avr-objcopy -O ihex $(TARGET_PATH).hex -R .eeprom $(TARGET_PATH)_eeprom.hex
 	avr-objcopy -I ihex $(TARGET_PATH).hex -O binary $(TARGET_PATH).bin
-	avr-nm -n ./$(OUTPUT_FOLDER)/*.o > $(TARGET_PATH).sym
 	avr-size --format=berkeley $(TARGET_PATH).hex
 
 .program:

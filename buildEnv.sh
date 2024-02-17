@@ -24,8 +24,9 @@ then
     echo "Alias already created"
 else
     echo "Creating alias..."
-    echo alias ktenv='docker run --rm --privileged -v $(pwd):/build tiago_lobao/kichentimer:latest' >> ~/.bashrc
+    echo alias ktenv=\'docker run --rm --privileged -v $(pwd):/build tiago_lobao/kichentimer:latest\' >> ~/.bashrc
 fi
+source ~/.bashrc
 
 echo "Done!"
 # ----- search arduino serial port -----

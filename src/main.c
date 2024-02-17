@@ -1,54 +1,74 @@
-/**
+/** ------------------------------------------------------------
  * @file main.c
  * 
  * @author Tiago Lobao
  * 
- * @brief Blink example based on the example for atmega328p
- * https://github.com/feilipu/avrfreertos/blob/master/UnoBlink/main.c
+ * @brief The main file contains the initialization of the taks
+ * And pre-configuration of MCU/FreeRTOS
  * 
- */
+ ------------------------------------------------------------ */
 
 /* Scheduler include files. */
 #include "FreeRTOS.h"
 #include "task.h"
-
-/*-----------------------------------------------------------*/
-static void TaskBlinkLED(void *pvParameters);
-/*-----------------------------------------------------------*/
+#include "main.h"
 
 int main(void)
 {
     xTaskCreate(
-		TaskBlinkLED
-		,  (const char *)"GreenLED"
-		,  256
-		,  NULL
-		,  3
-		,  NULL );
+        task_debuglog,
+        (const char *)"debuglog",
+        256,
+        NULL,
+        3,
+        NULL
+    );
 
+    xTaskCreate(
+        task_ultrasonicmodule,
+        (const char *)"ultrasonicmodule",
+        256,
+        NULL,
+        3,
+        NULL
+    );
 
-	vTaskStartScheduler();    
-}
+    xTaskCreate(
+        task_display,
+        (const char *)"display",
+        256,
+        NULL,
+        3,
+        NULL
+    );
 
-/*-----------------------------------------------------------*/
-static void TaskBlinkLED(void *pvParameters) // Main Green LED Flash
-{
-    (void) pvParameters;
-    TickType_t xLastWakeTime;
+    xTaskCreate(
+        task_radio,
+        (const char *)"radio",
+        256,
+        NULL,
+        3,
+        NULL
+    );
 
-	xLastWakeTime = xTaskGetTickCount();
-
-	DDRB |= _BV(DDB5);
+    vTaskStartScheduler();
 
     for(;;)
     {
-    	PORTB |=  _BV(PORTB5);       // main (red PB5) LED on. Arduino LED on
-		vTaskDelayUntil( &xLastWakeTime, ( 2000 / portTICK_PERIOD_MS ) );
-
-		PORTB &= ~_BV(PORTB5);       // main (red PB5) LED off. Arduino LED off
-		vTaskDelayUntil( &xLastWakeTime, ( 2000 / portTICK_PERIOD_MS )  );
-
+        // Idle task
     }
 }
 
-/*---------------------------------------------------------------------------*/
+
+void task_ultrasonicmodule(void *pvParameters)
+{
+    for(;;){}
+}
+void task_display(void *pvParameters)
+{
+    for(;;){}
+}
+void task_radio(void *pvParameters)
+{
+    for(;;){}
+}
